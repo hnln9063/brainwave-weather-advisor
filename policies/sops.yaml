@@ -1,0 +1,144 @@
+# Assignment policies, not medically or meteorologically certified guidance.
+# Fuzzy intent lives in descriptions; factual conditions remain explicit and auditable.
+activities:
+  cycling: Riding a bicycle, biking to work, pedalling, or a two-wheeler commute.
+  exercise: Outdoor running, jogging, hiking, or strenuous exercise on foot.
+  travel: General road travel or a drive, excluding cycling.
+  picnic: A relaxed outdoor meal, sitting on a blanket, or eating in a park.
+  park: A leisurely park visit, playground outing, or outdoor walk.
+  other: A question outside the supported activities, such as aviation or water sports.
+
+policies:
+  - id: AREA-01
+    version: 1
+    title: Thunderstorm affects every outdoor activity
+    category: area_hazards
+    severity: critical
+    priority: 100
+    when: {field: weather_code, op: in, value: [95, 96, 99]}
+    guidance: "Thunderstorms are forecast in the requested window. Postpone the outdoor activity and use an enclosed building for shelter."
+  - id: AREA-02
+    version: 1
+    title: Combined heavy rain and gusts
+    category: area_hazards
+    severity: high
+    priority: 90
+    when:
+      all:
+        - {field: precipitation, op: gte, value: 4}
+        - {field: wind_gusts_10m, op: gte, value: 35}
+    guidance: "Rain and gusts coincide in the forecast. Postpone exposed outdoor plans; this combined-weather policy takes precedence over activity comfort guidance. This forecast does not identify a named storm or establish an official warning."
+  - id: AREA-03
+    version: 1
+    title: Intense hourly precipitation
+    category: area_hazards
+    severity: high
+    priority: 80
+    when: {field: precipitation, op: gte, value: 8}
+    guidance: "Intense precipitation is forecast. Postpone the outdoor activity and do not enter water-covered roads or paths."
+  - id: CYCLE-01
+    version: 1
+    title: Gusts while cycling
+    category: exercise
+    severity: high
+    when:
+      all:
+        - {field: activity, op: eq, value: cycling}
+        - {field: wind_gusts_10m, op: gte, value: 38}
+    guidance: "Postpone cycling during the gusty window; gusts can make maintaining control difficult."
+  - id: CYCLE-02
+    version: 1
+    title: Wet cycling conditions
+    category: exercise
+    severity: moderate
+    when:
+      all:
+        - {field: activity, op: eq, value: cycling}
+        - {field: precipitation, op: gte, value: 0.5}
+    guidance: "Wet cycling conditions are forecast. Allow additional stopping distance and avoid painted or metal surfaces where practical."
+  - id: EXERCISE-01
+    version: 1
+    title: Heat during exertion
+    category: exercise
+    severity: high
+    when:
+      all:
+        - {field: activity, op: in, value: [cycling, exercise]}
+        - {field: apparent_temperature, op: gte, value: 36}
+    guidance: "Postpone strenuous outdoor exercise in this hot window. Choose an indoor activity instead."
+  - id: EXERCISE-02
+    version: 1
+    title: Elevated UV during exercise
+    category: exercise
+    severity: moderate
+    when:
+      all:
+        - {field: activity, op: in, value: [cycling, exercise]}
+        - {field: uv_index, op: gte, value: 6}
+    guidance: "Use sun protection and shade during outdoor exercise. A lower-UV alternative time needs its own forecast check."
+  - id: TRAVEL-01
+    version: 1
+    title: Rain likely during a road trip
+    category: travel
+    severity: moderate
+    when:
+      all:
+        - {field: activity, op: eq, value: travel}
+        - {field: precipitation_probability, op: gte, value: 65}
+    guidance: "Allow extra travel time for possible wet roads and check local road notices before departure."
+  - id: TRAVEL-02
+    version: 1
+    title: Freezing wet road conditions
+    category: travel
+    severity: high
+    when:
+      all:
+        - {field: activity, op: eq, value: travel}
+        - {field: temperature_2m, op: lte, value: 0}
+        - {field: precipitation, op: gt, value: 0}
+    guidance: "Freezing and wet conditions coincide. Postpone nonessential road travel because icy surfaces may form; the forecast is not a road-surface measurement."
+  - id: CARE-01
+    version: 1
+    title: Hot conditions for children and older adults
+    category: vulnerable_groups
+    severity: high
+    when:
+      all:
+        - {field: group, op: in, value: [children, elderly]}
+        - {field: apparent_temperature, op: gte, value: 32}
+    guidance: "Move the planned outing for children or older adults indoors during this hot window."
+  - id: CARE-02
+    version: 1
+    title: Hot conditions for a pet outing
+    category: vulnerable_groups
+    severity: moderate
+    when:
+      all:
+        - {field: group, op: eq, value: pets}
+        - {field: temperature_2m, op: gte, value: 28}
+    guidance: "Keep the pet outing brief and shaded, and check the ground before walking. Air temperature alone does not establish pavement temperature."
+  - id: LEISURE-01
+    version: 1
+    title: Unsettled sky for a relaxed outdoor meal
+    category: leisure
+    severity: moderate
+    when:
+      all:
+        - {field: activity, op: eq, value: picnic}
+        - {field: weather_code, op: in, value: [45, 48, 51, 53, 55, 61, 63, 65, 80, 81, 82]}
+    guidance: "For a relaxed outdoor meal, fog or wet weather makes an exposed setting a poor fit. Choose a covered venue or an indoor meal."
+  - id: LEISURE-02
+    version: 1
+    title: Clear or partly cloudy leisure outing
+    category: leisure
+    severity: low
+    when:
+      all:
+        - {field: activity, op: in, value: [picnic, park]}
+        - {field: weather_code, op: in, value: [0, 1, 2]}
+        - {field: temperature_2m, op: gte, value: 12}
+        - {field: temperature_2m, op: lte, value: 26}
+        - {field: wind_gusts_10m, op: lt, value: 20}
+        - {field: precipitation_probability, op: lt, value: 25}
+        - {field: uv_index, op: lt, value: 3}
+    guidance: "The matching hours meet this policy's comfort conditions for a relaxed park visit or outdoor meal. This is limited weather guidance, not a guarantee of safety for the whole outing."
