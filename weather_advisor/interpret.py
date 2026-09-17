@@ -174,6 +174,71 @@ class OpenAIInterpreter(ModelInterpreter):
             raise InterpretationError("OpenAI failed or returned invalid intent. Please retry.") from exc
 
 
+class OpenRouterInterpreter(ModelInterpreter):
+    def __init__(self):
+        self.key = os.getenv("OPENROUTER_API_KEY", "")
+        self.model = os.getenv("OPENROUTER_MODEL", "openai/gpt-4.1-mini")
+
+    def parse(self, question: str, context: dict, catalog: dict) -> dict:
+        if not self.key:
+            raise InterpretationError("OPENROUTER_API_KEY is missing; configure .env or choose demo mode.")
+        schema, prompt = self.contract(catalog)
+        schema["required"] = list(schema["properties"])
+        for prop in schema["properties"].values():
+            prop.pop("default", None)
+        try:
+            with httpx.Client(timeout=30) as client:
+                response = client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {self.key}"},
+                    json={
+                        "model": self.model,
+                        "max_tokens": 1000,
+                        "provider": {"require_parameters": True},
+                        "messages": [
+                            {"role": "system", "content": prompt},
+                            {
+                                "role": "user",
+                                "content": json.dumps({"previous_context": context, "question": question}),
+                            },
+                        ],
+                        "response_format": {
+                            "type": "json_schema",
+                            "json_schema": {"name": "intent", "strict": True, "schema": schema},
+                        },
+                    },
+                )
+                response.raise_for_status()
+                body = response.json()
+                if body.get("error"):
+                    raise ValueError("Provider error")
+                choices = body["choices"]
+                if len(choices) != 1 or choices[0].get("finish_reason") != "stop":
+                    raise ValueError("Incomplete response")
+                message = choices[0]["message"]
+                if message.get("refusal"):
+                    raise ValueError("Refused intent extraction")
+                data = json.loads(message["content"])
+                if not isinstance(data, dict) or set(data) != set(schema["required"]):
+                    raise ValueError("Missing or extra intent fields")
+                intent = Intent.model_validate(data, strict=True)
+                if intent.activity is not None and intent.activity not in catalog["activities"]:
+                    raise ValueError("Unknown activity")
+                return intent.model_dump()
+        except httpx.HTTPStatusError as exc:
+            message = {
+                400: "OpenRouter rejected the request. Check that OPENROUTER_MODEL supports structured outputs.",
+                401: "OpenRouter rejected the API key. Check OPENROUTER_API_KEY in .env.",
+                402: "OpenRouter has insufficient credits for this request. Check your OpenRouter balance and key spending limit.",
+                403: "OpenRouter denied access. Check your key and model permissions.",
+                404: "No eligible OpenRouter endpoint was found. Check OPENROUTER_MODEL and structured-output support.",
+                429: "OpenRouter rate limit reached. Wait before retrying and check your account limits.",
+            }.get(exc.response.status_code, "OpenRouter could not process the request. Please retry.")
+            raise InterpretationError(message) from exc
+        except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError, IndexError) as exc:
+            raise InterpretationError("OpenRouter failed or returned invalid intent. Please retry.") from exc
+
+
 class DemoInterpreter:
     """Explicitly limited fallback for running the UI without a paid model key."""
 
@@ -230,6 +295,8 @@ def make_interpreter():
         return AnthropicInterpreter()
     if provider == "openai":
         return OpenAIInterpreter()
+    if provider == "openrouter":
+        return OpenRouterInterpreter()
     if provider == "demo":
         return DemoInterpreter()
-    raise ValueError("MODEL_PROVIDER must be demo, openai, or anthropic")
+    raise ValueError("MODEL_PROVIDER must be demo, openai, openrouter, or anthropic")

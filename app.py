@@ -21,7 +21,7 @@ with st.sidebar:
     st.write(f"Language mode: **{provider}**")
     if provider == "demo":
         st.warning(
-            "Limited no-key demo: uses keyword patterns, not an LLM. Use OpenAI or Anthropic mode for natural-language matching."
+            "Limited no-key demo: uses keyword patterns, not an LLM. Use OpenAI, OpenRouter, or Anthropic for natural-language matching."
         )
     st.caption("Weather: live Open-Meteo hourly forecasts. Memory lasts only for this browser session.")
     st.markdown(

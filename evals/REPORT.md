@@ -6,7 +6,7 @@ Executed on 2026-09-17. This report separates deterministic fixture checks, limi
 
 | Layer | Result | Evidence |
 | --- | --- | --- |
-| Backend + frontend regression suite | **47 passed** | `pytest-results.xml`; `python -m pytest -q --junitxml=evals/pytest-results.xml` |
+| Backend + frontend regression suite | **63 passed** | `pytest-results.xml`; `python -m pytest -q --junitxml=evals/pytest-results.xml` |
 | Static checks | **Passed** | `ruff check .` |
 | Severe live-weather policy grounding | **Passed for this run** | `live_results.json`, with raw Open-Meteo responses, exact request URLs, timestamps, selected hours, SOPs, and replies |
 | Real Anthropic paraphrase/injection evaluation | **NOT_RUN** | No `ANTHROPIC_API_KEY` was available; recorded explicitly in `live_results.json` |
@@ -57,7 +57,8 @@ The initial sandboxed live attempt could not fetch data. After allowing network 
 ## Remaining limits and reproducibility
 
 - OpenAI support adds 13 mocked HTTP checks: provider selection and request/schema/context handling; refusal, incomplete response, extra/missing fields, wrong types, unknown activities and invalid JSON; authentication, permissions, quota and server errors; and missing keys. All pass. These validate the adapter contract, not real-model accuracy. Existing live weather evidence remains from the original run; it was not rerun for this provider-only change.
-- Full semantic acceptance is **not yet verified** because no paid model call has been demonstrated. Two demo paraphrases are useful plumbing checks, not proof of model robustness. Set `.env` to OpenAI or Anthropic mode with its key and run `python -m evals.run --model` to record actual model outcomes. OpenAI uses strict Structured Outputs; Anthropic uses a forced extraction tool call. Both validate intent locally before evaluating policies.
+- OpenRouter support adds 16 mocked checks covering the endpoint, authorization and strict schema, provider routing, context, truncated/refused/invalid replies, missing keys, and HTTP errors including insufficient credits. All pass. No live OpenRouter call was made; the user's key was not read or used during these tests.
+- Full semantic acceptance is **not yet verified** because no paid model call has been demonstrated. Two demo paraphrases are useful plumbing checks, not proof of model robustness. Set `.env` to OpenAI, OpenRouter, or Anthropic mode with its key and run `python -m evals.run --model` to record actual model outcomes. OpenAI and OpenRouter request structured outputs; Anthropic uses a forced extraction tool call. All validate intent locally before evaluating policies.
 - Live weather is time-dependent. The selected cities may have no high-severity conditions on a later run. The script records `NOT_DEMONSTRATED` and exits nonzero in that case; it never changes thresholds or invents values to pass. Keep repeatable fixture regressions and live integration checks separate.
 - No official warning feed is integrated. Compound rain/gust and categorical thunderstorm rules provide cross-category handling, but cannot detect a named low-pressure system whose significance is absent from available forecast fields. The limitation is explicit in the README and approved policy wording.
 - The app fails when a required forecast variable or hour is missing. This may reduce availability, but does not permit a partial forecast to masquerade as a complete assessment.

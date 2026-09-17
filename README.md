@@ -35,6 +35,16 @@ OPENAI_MODEL=gpt-4.1-mini
 
 Create a key at [OpenAI API keys](https://platform.openai.com/api-keys) and configure API billing in the platform. The OpenAI adapter uses the Responses API with strict structured output and `store=false`. No extra Python dependency is needed. Anthropic is also supported: set `MODEL_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, and optionally `ANTHROPIC_MODEL=claude-sonnet-4-5` instead.
 
+For an **OpenRouter** key, use these settings instead:
+
+```dotenv
+MODEL_PROVIDER=openrouter
+OPENROUTER_API_KEY=your-openrouter-key-here
+OPENROUTER_MODEL=openai/gpt-4.1-mini
+```
+
+The endpoint is configured automatically as `https://openrouter.ai/api/v1/chat/completions`. Use the full OpenRouter model ID, including the provider prefix. The example model is paid and needs OpenRouter credits; it does not use your direct OpenAI balance. Other models must support JSON-schema structured outputs. Requests require compatible provider parameters and all outputs are validated locally. Your question and context pass through OpenRouter to the selected upstream provider. See [OpenRouter setup](https://openrouter.ai/docs/quickstart) and [structured-output support](https://openrouter.ai/docs/guides/features/structured-outputs).
+
 Restart Streamlit after changing `.env`. A missing key or failed model request returns an explicit failure, never a silent downgrade to demo. `.env` is ignored by Git; use only `.env.example` for shared configuration. The question and structured conversation context are sent to your selected provider; the city is sent to Open-Meteo. Chat history lives in Streamlit session memory, not a database.
 
 Try “Can I cycle in Bhopal today?” then “What about tomorrow evening instead?” The second turn reuses the city and activity and fetches a fresh forecast for the new window. “New conversation” clears all session state.
@@ -79,7 +89,7 @@ Rules are loaded on every turn. Add this entry to the `policies` list and send a
   guidance: "For this cold park outing, use warm layers and keep the visit brief."
 ```
 
-Available factual fields and units are in `policy.FIELDS`. Supported operators are `eq`, `in`, `gte`, `gt`, `lte`, `lt`, with nested `all`/`any`. Intent fields are `activity` and `group`. Activity descriptions are also editable and flow into the model prompt/schema. New rules over supported fields need no code changes; a new weather variable, new operator, or new group taxonomy requires an explicitly acknowledged schema/provider extension. The limited demo parser does not automatically learn new activities; both model providers read their descriptions.
+Available factual fields and units are in `policy.FIELDS`. Supported operators are `eq`, `in`, `gte`, `gt`, `lte`, `lt`, with nested `all`/`any`. Intent fields are `activity` and `group`. Activity descriptions are also editable and flow into the model prompt/schema. New rules over supported fields need no code changes; a new weather variable, new operator, or new group taxonomy requires an explicitly acknowledged schema/provider extension. The limited demo parser does not automatically learn new activities; all model adapters read their descriptions.
 
 All matches are shown, ranked by severity, priority, then stable ID. Area hazards rank above activity-specific rules at the same severity. Low-severity comfort guidance is suppressed if any high/critical rule matches anywhere in the window. Recommendations apply to their matching hours, not necessarily every hour in the requested period; replies make the coverage explicit. Higher severity is never silently discarded because another rule also applies.
 
@@ -93,7 +103,7 @@ The thresholds and advice are assignment policies, not validated meteorological,
 
 - Windows are resolved in the forecast location's timezone: morning 06–12, afternoon 12–17, evening 17–22 (end exclusive).
 - “Today” evaluates the remaining hourly samples from the current local hour. “Now” uses that hour's **forecast**, not an observation. The current hourly interval may already be partly elapsed.
-- OpenAI and Anthropic modes support relative day offsets 0–6. Demo mode supports today/tomorrow. Exact clock times, calendar dates, and past/out-of-range requests require clarification.
+- OpenAI, OpenRouter, and Anthropic modes support relative day offsets 0–6. Demo mode supports today/tomorrow. Exact clock times, calendar dates, and past/out-of-range requests require clarification.
 - A passed window fails explicitly instead of silently switching dates. Missing hours and duplicate local timestamps fail closed; special repeated-hour DST cases are therefore unsupported.
 - Every turn fetches fresh data. New evidence can change a recommendation; timestamps and matching values make the basis visible. There is no cross-user or restart persistence and no cached forecast fallback.
 

@@ -59,13 +59,17 @@ def live_weather():
 
 def live_model():
     provider = os.getenv("MODEL_PROVIDER", "demo")
-    key_name = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}.get(provider)
+    key_name = {
+        "openai": "OPENAI_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+    }.get(provider)
     if key_name is None or not os.getenv(key_name):
         return {
             "name": "Real-model intent and injection evaluation",
             "result": "NOT_RUN",
             "provider": provider,
-            "reason": "Configure MODEL_PROVIDER=openai or anthropic and its API key. Demo checks cannot establish LLM accuracy.",
+            "reason": "Configure MODEL_PROVIDER=openai, openrouter, or anthropic and its API key. Demo checks cannot establish LLM accuracy.",
         }
     model = make_interpreter()
     from weather_advisor.policy import load_catalog
